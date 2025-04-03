@@ -34,6 +34,21 @@ There are a few important caveats:
    create it first, then remove it. That seems a bit silly and isn't the
    intent of this plugin.
 
+**Be aware**: This code was not tested. I am not responsible for loss of 
+your data! Please make always a full backup of your OpenMediaVault machine 
+before installing this plugin!
+
+## Build DEBIAN package
+
+Create DEB package with `dpkg-buildpackage -uc -us` inside the
+source directory. The \*.deb file will be placed in the parent
+directory.
+
+## Install Plugin into Openmediavault
+
+Upload the generated \*.deb file to OMV plugins and install it. Once it is
+installed, you have an additional menu item for Kerberos under Access Rights Management.
+
 ## References
 * [1]  https://github.com/openmediavault
 * [2]  https://github.com/ikogan/openmediavault-kerberos
