@@ -18,13 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-require_once("openmediavault/module.inc");
-require_once("openmediavault/config.inc");
-require_once("openmediavault/error.inc");
-
-class OMVModuleKerberos extends OMVModuleServiceAbstract
-	implements OMVINotifyListener {
-
+class Kerberos extends \OMV\Engine\Module\ServiceAbstract
+	implements \OMV\Engine\Notify\IListener {
         /**
          * Get the module name.
          */
@@ -33,47 +28,29 @@ class OMVModuleKerberos extends OMVModuleServiceAbstract
         }
 
         /**
-         * Generate the configuration
-         * @throw E_EXEC_FAILED
-         */
-        public function applyConfig() {
-            $cmd = "omv-mkconf kerberos 2>&1";
-            if(0 !== $this->exec($cmd, $output)) {
-                throw new OMVException(OMVErrorMsg::E_EXEC_FAILED,
-                  $cmd, implode("\n", $output));
-            }
-        }
-
-        /**
          * Bind listeners.
          */
-        function bindListeners(OMVNotifyDispatcher $dispatcher) {
+        function bindListeners(\OMV\Engine\Notify\Dispatcher $dispatcher) {
             $dispatcher->addListener(
               OMV_NOTIFY_MODIFY,
-              "org.openmediavault.services.kerberos",
-              array($this, "setDirty"));
-
-            $moduleMgr = &OMVModuleMgr::getInstance();
+              "org.openmediavault.conf.service.kerberos",
+              [ $this, "setDirty" ]);
+            $moduleMngr = \OMV\Engine\Module\Manager::getInstance();
             $dispatcher->addListener(
               OMV_NOTIFY_MODIFY,
-              "org.openmediavault.services.kerberos",
-              array($moduleMgr->getModule("samba"), "setDirty"));
+              "org.openmediavault.conf.service.kerberos",
+              [ $moduleMngr->getModule("samba"), "setDirty" ]);
             $dispatcher->addListener(
               OMV_NOTIFY_MODIFY,
-              "org.openmediavault.services.kerberos",
-              array($moduleMgr->getModule("pam"), "setDirty"));
+              "org.openmediavault.conf.service.kerberos",
+              [ $moduleMngr->getModule("pam"), "setDirty" ]);
             $dispatcher->addListener(
               OMV_NOTIFY_MODIFY,
-              "org.openmediavault.services.kerberos",
-              array($moduleMgr->getModule("nfs"), "setDirty"));
+              "org.openmediavault.conf.service.kerberos",
+              [ $moduleMngr->getModule("nfs"), "setDirty" ]);
             $dispatcher->addListener(
               OMV_NOTIFY_MODIFY,
-              "org.openmediavault.services.kerberos",
-              array($moduleMgr->getModule("ssh"), "setDirty"));
+              "org.openmediavault.conf.service.kerberos",
+              [ $moduleMngr->getModule("ssh"), "setDirty" ]);
         }
 }
-
-// Register module.
-$moduleMgr = &OMVModuleMgr::getInstance();
-$moduleMgr->registerModule(new OMVModuleKerberos());
-?>
