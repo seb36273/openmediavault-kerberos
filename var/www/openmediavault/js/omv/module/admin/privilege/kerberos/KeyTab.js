@@ -160,7 +160,7 @@ Ext.define("OMV.module.admin.privilege.kerberos.KeyTab", {
 		var me = this;
 		var records = me.getSelection();
 
-		Ext.MessageBox.confirm(_('Delete Keys?'), _('Are you sure you want to remove these keys?'), function(button) {
+		OMV.MessageBox.confirm(null, _('Are you sure you want to remove these keys?'), function(button) {
 			if(button === 'yes') {
 				var slots = [];
 				Ext.each(records, function(record) {
@@ -173,7 +173,7 @@ Ext.define("OMV.module.admin.privilege.kerberos.KeyTab", {
 						if(success) {
 							me.doReload();
 						} else {
-           					Ext.Msg.alert(_('Error'), response.message);
+							OMV.MessageBox.error(null, response);
 						}
 					},
 					rpcData: {

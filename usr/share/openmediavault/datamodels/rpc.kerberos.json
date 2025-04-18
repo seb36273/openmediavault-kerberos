@@ -1,0 +1,43 @@
+[{
+	"type": "rpc",
+	"id": "rpc.kerberos.setsettings",
+	"params": {
+		"type": "object",
+		"properties": {
+			"enable": {
+				"type": "boolean",
+				"required": true
+			},
+			"realm": {
+				"type": "string",
+				"required": true
+			},
+			"kdcs": {
+				"type": "string",
+				"required": true
+			},
+			"adminserver": {
+				"type": "string",
+				"required": true
+			},
+			"enablenfs": {
+				"type": "boolean"
+			},
+			"enablesmb": {
+				"type": "boolean"
+			},
+			"enablessh": {
+				"type": "boolean"
+			},
+			"enablepam": {
+				"type": "boolean"
+			},
+			"extraoptions": {
+				"type": "string"
+			},
+			"logging": {
+				"type": "boolean"
+			}
+		}
+	}
+}]

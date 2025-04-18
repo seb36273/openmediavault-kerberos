@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # @license   http://www.gnu.org/licenses/gpl.html GPL Version 3
 # @author    Volker Theile <volker.theile@openmediavault.org>
 # @author    OpenMediaVault Plugin Developers <plugins@omv-extras.org>
@@ -19,18 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-set -e
+{% set krb_config = salt['omv_conf.get']('conf.service.kerberos') %}
+{% set smb_config = salt['omv_conf.get']('conf.service.smb') %}
 
-. /etc/default/openmediavault
-. /usr/share/openmediavault/scripts/helper-functions
+{% set smb_config_file = salt['pillar.get']('default:OMV_SAMBA_CONFIG', '/etc/samba/smb.conf') %}
 
-OMV_KRB5_CONFIG="/etc/krb5.conf"
+{% if krb_config.enable | to_bool and krb_config.enablesmb | to_bool and smb_config.enable | to_bool %}
 
-if [ "$(omv_config_get "//services/kerberos/enable")" = "1" ]; then
-	if [ "$(omv_config_get "//services/kerberos/logging")" = "1" ]; then
-	    xmlstarlet sel -t -m "//services/kerberos" \
-			-o "[logging]" -n \
-			-o "	" -o "default = FILE:/var/log/kerberos.log" -n \
-		-b ${OMV_CONFIG_FILE} | xmlstarlet unesc >> ${OMV_KRB5_CONFIG}
-	fi
-fi
+configure_samba_global_kerberos:
+  file.append:
+    - name: {{ smb_config_file }}
+    - sources:
+      - salt://{{ tpldir }}/files/global-kerberos.j2
+    - template: jinja
+    - context:
+       config: {{ krb_config | json }}
+    - watch_in:
+      - service: start_samba_service
+
+{% endif %}
