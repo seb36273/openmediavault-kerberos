@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # @license   http://www.gnu.org/licenses/gpl.html GPL Version 3
 # @author    Volker Theile <volker.theile@openmediavault.org>
 # @author    OpenMediaVault Plugin Developers <plugins@omv-extras.org>
@@ -19,21 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-set -e
+{% set krb_config = salt['omv_conf.get']('conf.service.kerberos') %}
+{% set ssh_config = salt['omv_conf.get']('conf.service.ssh') %}
 
-. /etc/default/openmediavault
-. /usr/share/openmediavault/scripts/helper-functions
+{% if krb_config.enable | to_bool and krb_config.enablessh | to_bool and ssh_config.enable | to_bool %}
 
-OMV_KRB5_CONFIG="/etc/krb5.conf"
+configure_ssh_sshd_config_kerberos:
+  file.keyvalue:
+    - name: /etc/ssh/sshd_config
+    - key_values:
+        KerberosAuthentication: 'yes'
+        GSSAPIAuthentication: 'yes'
+    - separator: ' '
+    - uncomment: '# '
+    - key_ignore_case: True
+    - append_if_not_found: True
+    - watch_in:
+      - service: start_ssh_service
 
-if [ "$(omv_config_get "//services/kerberos/enable")" = "1" ]; then
-    xmlstarlet sel -t -m "//services/kerberos" \
-        -o "[realms]" -n \
-		-o "    " -v "concat(realm, ' = {')" -n \
-		-m "kdcs/kdc" \
-		-o "        " -v "concat('kdc = ', .)" -n -b \
-		-m "//services/kerberos" \
-		-o "        " -v "concat('admin_server = ', adminServer)" -n \
-		-o "        " -v "concat('default_domain = ', realm)" \
-	-b ${OMV_CONFIG_FILE} | xmlstarlet unesc >> ${OMV_KRB5_CONFIG}
-fi
+{% endif %}

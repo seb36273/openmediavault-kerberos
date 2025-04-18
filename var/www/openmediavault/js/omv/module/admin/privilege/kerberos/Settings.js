@@ -62,7 +62,7 @@ Ext.define("OMV.module.admin.privilege.kerberos.Settings", {
                 }]
             },{
                 xtype      : "textfield",
-                name       : "adminServer",
+                name       : "adminserver",
                 fieldLabel : _("Admin Server"),
                 allowBlank : false,
                 vtype: "domainnameIP",
@@ -93,27 +93,27 @@ Ext.define("OMV.module.admin.privilege.kerberos.Settings", {
             },
             items : [{
                 xtype      : "checkbox",
-                name       : "nfs-enabled",
+                name       : "enablenfs",
                 fieldLabel : _("NFS"),
-                checked    : true,
+                checked    : false,
                 boxLabel   : _("Enable support for Kerberos security for all NFS shares.")
             }, {
                 xtype      : "checkbox",
-                name       : "smb-enabled",
+                name       : "enablesmb",
                 fieldLabel : _("SMB/CIFS"),
-                checked    : true,
+                checked    : false,
                 boxLabel   : _("Enable support for Kerberos authentication for SMB/CIFS.")
             }, {
                 xtype      : "checkbox",
-                name       : "ssh-enabled",
+                name       : "enablessh",
                 fieldLabel : _("SSH"),
-                checked    : true,
+                checked    : false,
                 boxLabel   : _("Enable support for Kerberos and GSSAPI authentication for SSH.")
             }, {
                 xtype      : "checkbox",
-                name       : "pam-enabled",
+                name       : "enablepam",
                 fieldLabel : _("PAM"),
-                checked    : true,
+                checked    : false,
                 boxLabel   : _("Enable support for system-wide Kerberos authentication via PAM.")
             }]
         }]

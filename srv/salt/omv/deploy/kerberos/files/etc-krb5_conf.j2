@@ -1,0 +1,18 @@
+[libdefaults]
+	default_realm = {{ config.realm | upper }}
+
+[realms]
+	{{ config.realm | upper }} = {
+{%- for kdc in config.kdcs.split(',') %}
+		kdc = {{ kdc }}
+{% endfor %}
+		admin_server = {{ config.adminserver }}
+	}
+
+[domain_realm]
+	.{{ config.realm | lower }} = {{ config.realm | upper }}
+	{{ config.realm | lower }} = {{ config.realm | upper }}
+{% if config.logging | to_bool %}
+[logging]
+	default = FILE:/var/log/kerberos.log
+{% endif %}

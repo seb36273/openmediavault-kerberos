@@ -1,0 +1,47 @@
+{
+	"type": "config",
+	"id": "conf.service.kerberos",
+	"title": "Kerberos",
+	"queryinfo": {
+		"xpath": "//services/kerberos",
+		"iterable": false
+	},
+	"properties": {
+		"enable": {
+			"type": "boolean",
+			"default": false
+		},
+		"realm": {
+			"type": "string"
+		},
+		"kdcs": {
+			"type": "string"
+		},
+		"adminserver": {
+			"type": "string"
+		},
+		"enablenfs": {
+			"type": "boolean",
+			"default": false
+		},
+		"enablesmb": {
+			"type": "boolean",
+			"default": false
+		},
+		"enablessh": {
+			"type": "boolean",
+			"default": false
+		},
+		"enablepam": {
+			"type": "boolean",
+			"default": false
+		},
+		"extraoptions": {
+			"type": "string"
+		},
+		"logging": {
+			"type": "boolean",
+			"default": true
+		}
+	}
+}

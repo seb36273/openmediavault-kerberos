@@ -1,0 +1,4 @@
+#======================= Kerberos Settings =======================
+kerberos method = secrets and keytab
+realm = {{ config.realm | upper }}
+password server = {{ config.kdcs }}

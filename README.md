@@ -1,4 +1,4 @@
-# Kerberos plugin for OpenMediaVault
+# Kerberos Plugin for OpenMediaVault
 
 This plugin implements a simple UI for configuring MIT Kerberos
 for OpenMediaVault and integrating it with NFS and Samba.
@@ -27,18 +27,17 @@ There are a few important caveats:
    `sec` option set to `krb5:krb5i:krb5p`. This means that any of those are
    supported per share and it's up to the clients to pick one. It also
    means all shares require Kerberos.
-2. This now requires OpenMediaVault 2.0.3+. 1.17 is not supported.
 2. The locations of the Kerberos config files and keytab are hardcoded.
 3. Creating a new key assumes you also want to load it to the local keytab,
    there is no way to create a key on the KDC and *not* load it except to
    create it first, then remove it. That seems a bit silly and isn't the
    intent of this plugin.
 
-**Be aware**: This code was not tested. I am not responsible for loss of 
-your data! Please make always a full backup of your OpenMediaVault machine 
-before installing this plugin!
+**Be aware**: This code was tested in a clean environment with fresh installed OpenMediaVault setup.
+I am not responsible for loss of your data! Please make always a full backup
+of your OpenMediaVault machine before installing this plugin!
 
-## Build DEBIAN package
+## Build DEBIAN Package
 
 Create DEB package with `dpkg-buildpackage -uc -us` inside the
 source directory. The \*.deb file will be placed in the parent
@@ -46,8 +45,22 @@ directory.
 
 ## Install Plugin into Openmediavault
 
-Upload the generated \*.deb file to OMV plugins and install it. Once it is
+Upload the generated \*.deb file to OpenMediaVault plugins and install it. Once it is
 installed, you have an additional menu item for Kerberos under Access Rights Management.
+
+## Environment for Testing
+
+* Openmediavault 5.5.26-1 (Usul)
+
+## Troubleshooting
+
+If you get in trouble, try:
+* check log files
+* run `/usr/sbin/omv-engined --debug --foreground`
+* check config with `omv-confdbadm read conf.service.kerberos`
+* apply config with `omv-salt deploy run kerberos`
+* remove all uploaded packages via `omv-firstaid` tool
+* remove plugin and reinstall
 
 ## References
 * [1]  https://github.com/openmediavault

@@ -18,15 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-require_once("openmediavault/object.inc");
-require_once("openmediavault/config.inc");
-require_once("openmediavault/error.inc");
-require_once("openmediavault/rpcservice.inc");
-require_once("openmediavault/notify.inc");
-
-class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
-	private $principalRegex = "/(.*)\/(.*)@(.*)$/";
-
+class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	/**
 	 * Get the RPC service name.
 	 */
@@ -52,104 +44,43 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 	 * @param context The context of the caller.
 	 * @return A JSON object containing the fields required
 	 *	to configure Kerberos.
-	 * @throw E_CONFIG_GET_OBJECT_FAILED
 	 */
 	function getSettings($params, $context) {
-		global $xmlConfig;
-
 		// Validate the RPC caller context.
-		$this -> validateMethodContext($context, array(
-				"role" => OMV_ROLE_ADMINISTRATOR
-		));
-
-		// Get the configuration object.
-		$xpath = "//services/kerberos";
-		$object = $xmlConfig -> get($xpath);
-		if(is_null($object)) {
-			throw new OMVException(OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED);
-		}
-
-		// Modify result object.
-		if(array_key_exists('kdcs', $object) && array_key_exists('kdc', $object['kdcs'])) {
-			if(is_array($object['kdcs']['kdc'])) {
-				$object['kdcs'] = implode(',', $object['kdcs']['kdc']);
-			} else {
-				$object['kdcs'] = $object['kdcs']['kdc'];
-			}
-		}
-		
-		$object['enable'] = boolvalEx($object['enable']);
-		$object['logging'] = boolvalEx($object['logging']);
-		$object['nfs-enabled'] = boolvalEx($object['nfs-enabled']);
-		$object['smb-enabled'] = boolvalEx($object['smb-enabled']);
-		$object['ssh-enabled'] = boolvalEx($object['ssh-enabled']);
-		$object['pam-enabled'] = boolvalEx($object['pam-enabled']);
-
-		return $object;
-	}
-
-	/**
-	 * Set the Kerberos configuration settings.
-	 *
-	 * @param params An array containing all of the fields and values.
-	 * @param context The context of the caller.
-	 * @return The stored configuration object.
-	 * @throw E_CONFIG_SET_OBJECT_FAILED
-	 */
-	function setSettings($params, $context) {
-		global $xmlConfig;
-
-		// Validate the RPC caller context
 		$this -> validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
-		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"enable": {"type": "boolean"},
-				"realm": {"type": "string"},
-				"kdcs": {"type": "string"},
-				"adminServer": {"type": "string"},
-				"logging": {"type": "boolean"},
-				"extraoptions": {"type": "string"},
-				"nfs-enabled": {"type": "boolean"},
-				"smb-enabled": {"type": "boolean"},
-				"ssh-enabled": {"type": "boolean"},
-				"pam-enabled": {"type": "boolean"}
-			}
-		}');
+		// Get the configuration object.
+		$db = \OMV\Config\Database::getInstance();
+		return $db->getAssoc("conf.service.kerberos");
+	}
+
+	/**
+	 * Set the Kerberos configuration settings.
+	 * @param params An array containing all of the fields and values.
+	 * @param context The context of the caller.
+	 * @return The stored configuration object.
+	 */
+	function setSettings($params, $context) {
+		// Validate the RPC caller context.
+		$this->validateMethodContext($context, [
+			"role" => OMV_ROLE_ADMINISTRATOR
+		]);
+
+		// Validate the parameters of the RPC service method.
+		$this->validateMethodParams($params, "rpc.kerberos.setsettings");
 
 		// Prepare the configuration object.
-		$kdcs = explode(trim($params['kdcs']));
-		
-		$object = array(
-			"enable" => array_boolval($params, 'enable'),
-			"realm" => strtoupper(trim($params['realm'])),
-			"kdcs" => array(
-				"kdc" => preg_split("/[,;]/", trim($params['kdcs']))
-			),
-			"adminServer" => trim($params['adminServer']),
-			"logging" => array_boolval($params, 'logging'),
-			"extraoptions" => $params['extraoptions'],
-			"nfs-enabled" => array_boolval($params, 'nfs-enabled'),
-			"smb-enabled" => array_boolval($params, 'smb-enabled'),
-			"ssh-enabled" => array_boolval($params, 'ssh-enabled'),
-			"pam-enabled" => array_boolval($params, 'pam-enabled')
-		);
+		$object = new \OMV\Config\ConfigObject("conf.service.kerberos");
+		$object->setAssoc($params);
 
-		// Set the configuration object
-		$xpath = "//services/kerberos";
-		if(FALSE === $xmlConfig -> replace($xpath, $object)) {
-			throw new OMVException(OMVErrorMsg::E_CONFIG_SET_OBJECT_FAILED);
-		}
+		// Set the configuration object.
+		$db = \OMV\Config\Database::getInstance();
+		$db->set($object);
 
-		// Notify of configuration changes.
-		$dispatcher = &OMVNotifyDispatcher::getInstance();
-		$dispatcher -> notify(OMV_NOTIFY_MODIFY,"org.openmediavault.services.kerberos", $object);
-
-		return $object;
+		// Return the configuration object.
+		return $object->getAssoc();
 	}
 
 	/**
@@ -165,11 +96,9 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
-		$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil 2>&1";
-		@OMVUtil::exec($cmd, $output, $result);
-
-		if($result !== 0) {
-			return FALSE;
+		$cmd = sprintf("export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil 2>&1");
+		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
+				throw new \OMV\ExecException($cmd, $output, $exitStatus);
 		}
 
 		$list = array();
@@ -185,7 +114,8 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 					"principal" => $outputv[2]
 				);
 
-				if(preg_match($this -> principalRegex, $principal, $matches)) {
+				$regex = "/(.*)\/(.*)@(.*)$/";
+				if(preg_match($this -> regex, $principal, $matches)) {
 					$entry["type"] = $matches[1];
 					$entry["object"] = $matches[2];
 					$entry["realm"] = $matches[3];
@@ -238,17 +168,16 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 		$result = $this -> exec($cmd, $output);
 
 		if($result !== 0) {
-			throw new OMVException(OMVErrorMsg::E_MISC_FAILURE,
-				sprintf("%s: %s", gettext("Failed to add desired key from KDC"), implode("\n", $output)));
+			throw new \OMV\Exception("Failed to add desired key from KDC: %s", 
+				implode("\n", $output)
+			);
 		}
 
 		$newKeyTab = $this -> getKeyTab($params, $context);
 
-		// If the number of keys in the old and new keytabs is identical,
-		// we failed.
+		// If the number of keys in the old and new keytabs is identical, we failed.
 		if(count($currentKeyTab) === count($newKeyTab)) {
-			throw new OMVException(OMVErrorMsg::E_MISC_FAILURE,
-				sprintf("%s: %s", gettext("Failed to add desired key from KDC"), implode("\n", $output)));
+			throw new \OMV\Exception("Failed to add desired key from KDC");
 		}
 
 		return $output;
@@ -295,7 +224,7 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 		// the same number as in the keytab, simply delete the keytab file.
 		$currentKeyTab = $this -> getKeyTab($params, $context);
 
-		if(count($params['slots']) === 1 || count($params['slots']) === count($currentKeyTab)) {
+		if(count($params['slots']) === count($currentKeyTab)) {
 			$cmd = "export LANG=C; rm -f /etc/krb5.keytab";
 		} else {
 			arsort($params['slots']);
@@ -319,8 +248,9 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 		$result = $this -> exec($cmd, $output);
 
 		if($result !== 0) {
-			throw new OMVException(OMVErrorMsg::E_MISC_FAILURE,
-				sprintf("%s: %s", gettext("Failed to remove key(s) from key tab"), implode("\n", $output)));
+			throw new \OMV\Exception("Failed to remove key(s) from key tab: %s", 
+				implode("\n", $output)
+			);
 		}
 
 		return $output;
@@ -369,13 +299,14 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 			$cmd .= " -pw \\\"" . $params['newPrincipalKey'] . "\\\"";
 		}
 
-		$cmd .= " \\\"" . $params['newPrincipal'] . "\\\"\"";
+		$cmd .= " \\\"" . $params['newPrincipal'] . "\\\"\" 2>&1";
 
 		$result = $this -> exec($cmd, $output);
 
 		if($result !== 0) {
-			throw new OMVException(OMVErrorMsg::E_MISC_FAILURE,
-				sprintf("%s: %s", gettext("Failed to create new key on KDC"), implode("\n", $output)));
+			throw new \OMV\Exception("Failed to create new key on KDC: %s", 
+				implode("\n", $output)
+			);
 		}
 
 		// Now, use addKeyFromKeyServer to add the key to the keytab.
@@ -390,6 +321,3 @@ class OMVRpcServiceKerberos extends OMVRpcServiceAbstract {
 		return $output;
 	}
 }
-
-$rpcServiceMgr = &OMVRpcServiceMgr::getInstance();
-$rpcServiceMgr -> registerService(new OMVRpcServiceKerberos());

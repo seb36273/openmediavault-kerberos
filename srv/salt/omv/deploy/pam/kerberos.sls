@@ -1,5 +1,3 @@
-#!/bin/sh
-#
 # @license   http://www.gnu.org/licenses/gpl.html GPL Version 3
 # @author    Volker Theile <volker.theile@openmediavault.org>
 # @author    OpenMediaVault Plugin Developers <plugins@omv-extras.org>
@@ -19,21 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-set -e
+{% set config = salt['omv_conf.get']('conf.service.kerberos') %}
 
-. /etc/default/openmediavault
-. /usr/share/openmediavault/scripts/helper-functions
-
-OMV_SAMBA_CONFIG=${OMV_SAMBA_CONFIG:-"/etc/samba/smb.conf"}
-
-[ "$(omv_config_get "//services/smb/enable")" = "0" -o \
-  "$(omv_config_get "//services/kerberos/smb-enabled")" = "0" -o \
-  "$(omv_config_get "//services/kerberos/enable")" = "0" ] && exit 0
-
-xmlstarlet sel -t -m "//services/kerberos" \
-  -o "#======================= Kerberos Settings =======================" -n \
-  -o "kerberos method = secrets and keytab" -n \
-  -v "concat('realm = ', realm)" -n \
-  -o 'password server = ' \
-  -m "kdcs/kdc" -v "concat(., ' ')" -b -n \
-  ${OMV_CONFIG_FILE} | xmlstarlet unesc >> ${OMV_SAMBA_CONFIG}
+configure_pam_kerberos_trigger:
+  cmd.run:
+    {% if config.enable | to_bool and config.enablepam | to_bool %}
+    - name: 'pam-auth-update --force --package kerberos'
+    {% else %}
+    - name: 'pam-auth-update --force --package --remove kerberos'
+    {% endif %}
