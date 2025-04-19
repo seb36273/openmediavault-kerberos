@@ -5,7 +5,7 @@ Priority: optional
 Maintainer: OpenMediaVault Plugin Developers <plugins@omv-extras.org>
 Build-Depends: debhelper (>= 9.0.0 )
 Standards-Version: 3.9.3
-Homepage: https://github.com/ikogan/openmediavault-kerberos
+Homepage: https://github.com/seb36273/openmediavault-kerberos
 
 Package: openmediavault-kerberos
 Architecture: all
