@@ -50,7 +50,7 @@ installed, you have an additional menu item for Kerberos under Access Rights Man
 
 ## Environment for Testing
 
-* Openmediavault 5.5.26-1 (Usul)
+* Openmediavault 6.9.16-1 (Shaitan)
 
 ## Troubleshooting
 

@@ -3,13 +3,13 @@ Section: net
 XB-Plugin-Section: network
 Priority: optional
 Maintainer: OpenMediaVault Plugin Developers <plugins@omv-extras.org>
-Build-Depends: debhelper (>= 9.0.0 )
-Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 12)
+Standards-Version: 4.3.0
 Homepage: https://github.com/seb36273/openmediavault-kerberos
 
 Package: openmediavault-kerberos
 Architecture: all
-Depends: ${misc:Depends}, openmediavault (>= 5.0.5), libpam-krb5, krb5-user
+Depends: ${misc:Depends}, openmediavault (>= 6.5), libpam-krb5, krb5-user
 Description: Kerberos authentication for SSH, NFS, SMB, and PAM.
  The OpenMediaVault Kerberos plugin provides authentication,
  via the Kerberos system, including support for secure and/or encrypted

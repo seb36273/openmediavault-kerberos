@@ -1,0 +1,70 @@
+version: "1.0"
+type: component
+data:
+  name: omv-usermgmt-kerberos-datatable-page
+  type: datatablePage
+  config:
+    autoReload: false
+    store:
+      proxy:
+        service: Kerberos
+        get:
+          method: getKeyTab
+    rowId: slot
+    rowEnumFmt: "{{ slot }}"
+    columns:
+      - name: _("Slot")
+        prop: slot
+        sortable: true
+      - name: _("Version")
+        prop: version
+        sortable: true
+      - name: _("Principal")
+        prop: principal
+        sortable: true
+        flexGrow: 1
+    actions:
+      - type: menu
+        icon: add
+        tooltip: _("Add")
+        actions:
+          - text: _("Add Key")
+            execute:
+              type: formDialog
+              formDialog:
+                title: _("Add key from key server ...")
+                request:
+                  service: Kerberos
+                  post:
+                    method: addKeyFromKeyServer
+                fields:
+                  - type: textInput
+                    name: adminPrincipal
+                    label: _("Administration Principal")
+                    validators:
+                      required: true
+                  - type: passwordInput
+                    name: adminPassword
+                    label: _("Administration Password")
+                    validators:
+                      required: true
+                  - type: textInput
+                    name: targetPrincipal
+                    label: _("Target Principal")
+                    validators:
+                      required: true
+                buttons:
+                  - template: submit
+                  - template: cancel
+          - text: _("Create Principal")
+            execute:
+              type: url
+              url: "/usermgmt/kerberos/principal/create"
+      - template: delete
+        execute:
+          type: request
+          request:
+            service: Kerberos
+            method: removeKey
+            params:
+              slots: "{{ slot }}"

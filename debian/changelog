@@ -1,3 +1,9 @@
+openmediavault-kerberos (0.2.3) testing; urgency=low
+
+  * Compatiblity with OpenMediaVault 6.9.16-1 (Shaitan)
+
+ -- Seb36273 <devel@nareo.de>  Sat, 19 Apr 2025 11:08:51 +0200
+
 openmediavault-kerberos (0.1.6) testing; urgency=low
 
   * Compatiblity with OpenMediaVault 5.5.26 (Usul)

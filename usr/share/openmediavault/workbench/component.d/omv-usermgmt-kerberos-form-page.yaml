@@ -1,0 +1,70 @@
+version: "1.0"
+type: component
+data:
+  name: omv-usermgmt-kerberos-form-page
+  type: formPage
+  config:
+    request:
+      service: Kerberos
+      get:
+        method: getSettings
+      post:
+        method: setSettings
+    fields:
+      - type: checkbox
+        name: enable
+        label: _("Enable")
+        value: false
+      - type: textInput
+        name: realm
+        label: _("Realm")
+        hint: _("FQDN in all caps. It should match a real domain that a DNS server (even if local) will resolve. Note that the actual domain does not have to be in all uppercase.")
+        validators:
+          required: true
+      - type: textInput
+        name: kdcs
+        label: _("KDCs")
+        hint: _("FQDN or IP address of the Kerberos Key Distribution Servers. Separate multiple servers with commas.")
+        validators:
+          required: true
+      - type: textInput
+        name: adminserver
+        label: _("Admin Server")
+        hint: _("FQDN or IP address of the Kerberos Admin Server.")
+        validators:
+          required: true
+      - type: checkbox
+        name: logging
+        label: _("Logging")
+        value: true
+      - type: textarea
+        name: extraoptions
+        label: _("Extra options")
+        hint: _("Please check the <a href='http://linux.die.net/man/5/krb5.conf' target='_blank'>manual page</a> for more details.")
+        value: ''
+      - type: checkbox
+        name: enablenfs
+        label: _("NFS")
+        value: false
+        hint: _("Enable support for Kerberos security for all NFS shares.")
+      - type: checkbox
+        name: enablesmb
+        label: _("SMB/CIFS")
+        value: false
+        hint: _("Enable support for Kerberos authentication for SMB/CIFS.")
+      - type: checkbox
+        name: enablessh
+        label: _("SSH")
+        value: false
+        hint: _("Enable support for Kerberos and GSSAPI authentication for SSH.")
+      - type: checkbox
+        name: enablepam
+        label: _("PAM")
+        value: false
+        hint: _("Enable support for system-wide Kerberos authentication via PAM.")
+    buttons:
+      - template: submit
+      - template: cancel
+        execute:
+          type: url
+          url: "/usermgmt/kerberos"

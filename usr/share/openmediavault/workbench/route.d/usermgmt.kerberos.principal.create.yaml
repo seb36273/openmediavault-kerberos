@@ -1,0 +1,7 @@
+version: "1.0"
+type: route
+data:
+  url: "/usermgmt/kerberos/principal/create"
+  title: _("Create")
+  notificationTitle: _('Created Kerberos Principal.')
+  component: omv-usermgmt-kerberos-principal-form-page

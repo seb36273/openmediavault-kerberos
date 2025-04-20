@@ -1,0 +1,8 @@
+version: "1.0"
+type: navigation-item
+data:
+  path: "usermgmt.kerberos.keytab"
+  position: 20
+  text: _("Key Tab")
+  icon: "mdi:table-key"
+  url: "/usermgmt/kerberos/keytab"
