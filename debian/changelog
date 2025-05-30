@@ -1,8 +1,11 @@
-openmediavault-kerberos (0.2.3) testing; urgency=low
+openmediavault-kerberos (0.3.7) testing; urgency=low
 
   * Compatiblity with OpenMediaVault 6.9.16-1 (Shaitan)
+  * Use `kadmin.local` to manage principals in local keytab.
+  * Show unique kvno:principal entries in keytab. This makes it
+    easier to remove principals.
 
- -- Seb36273 <devel@nareo.de>  Sat, 19 Apr 2025 11:08:51 +0200
+ -- Seb36273 <devel@nareo.de>  Fri, 30 May 2025 23:37:19 +0200
 
 openmediavault-kerberos (0.1.6) testing; urgency=low
 

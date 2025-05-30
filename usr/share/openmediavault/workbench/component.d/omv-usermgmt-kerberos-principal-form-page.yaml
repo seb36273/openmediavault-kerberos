@@ -11,16 +11,6 @@ data:
         method: createKey
     fields:
       - type: textInput
-        name: adminPrincipal
-        label: _("Administration Principal")
-        validators:
-          required: true
-      - type: passwordInput
-        name: adminPassword
-        label: _("Administration Password")
-        validators:
-          required: true
-      - type: textInput
         name: newPrincipal
         label: _("New Principal")
         validators:

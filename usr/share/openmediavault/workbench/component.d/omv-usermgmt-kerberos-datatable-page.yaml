@@ -10,12 +10,9 @@ data:
         service: Kerberos
         get:
           method: getKeyTab
-    rowId: slot
-    rowEnumFmt: "{{ slot }}"
+    rowId: version
+    rowEnumFmt: "{{ version }}"
     columns:
-      - name: _("Slot")
-        prop: slot
-        sortable: true
       - name: _("Version")
         prop: version
         sortable: true
@@ -28,38 +25,30 @@ data:
         icon: add
         tooltip: _("Add")
         actions:
-          - text: _("Add Key")
+          - text: _("Create new Principal")
+            execute:
+              type: url
+              url: "/usermgmt/kerberos/principal/create"
+          - text: _("Add Principal")
             execute:
               type: formDialog
               formDialog:
-                title: _("Add key from key server ...")
+                title: _("Add Principal")
                 request:
                   service: Kerberos
-                  post:
-                    method: addKeyFromKeyServer
+                  method: addKey
+                  params:
+                    principal: "{{ principal }}"
                 fields:
                   - type: textInput
-                    name: adminPrincipal
-                    label: _("Administration Principal")
-                    validators:
-                      required: true
-                  - type: passwordInput
-                    name: adminPassword
-                    label: _("Administration Password")
-                    validators:
-                      required: true
-                  - type: textInput
-                    name: targetPrincipal
-                    label: _("Target Principal")
+                    name: principal
+                    label: _("Principal")
+                    hint: _("The name of the principal to add to the local keytab.")
                     validators:
                       required: true
                 buttons:
                   - template: submit
                   - template: cancel
-          - text: _("Create Principal")
-            execute:
-              type: url
-              url: "/usermgmt/kerberos/principal/create"
       - template: delete
         execute:
           type: request
@@ -67,4 +56,5 @@ data:
             service: Kerberos
             method: removeKey
             params:
-              slots: "{{ slot }}"
+              version: "{{ version }}"
+              principal: "{{ principal }}"

@@ -33,7 +33,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$this -> registerMethod("getSettings");
 		$this -> registerMethod("setSettings");
 		$this -> registerMethod("getKeyTab");
-		$this -> registerMethod("addKeyFromKeyServer");
+		$this -> registerMethod("addKey");
 		$this -> registerMethod("removeKey");
 		$this -> registerMethod("createKey");
 	}
@@ -92,39 +92,42 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 */
 	function getKeyTab($params, $context) {
 		// Validate the RPC caller context
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
-		$cmd = sprintf("export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil 2>&1");
+		// Use klist -k to retrieve the all keytab entries (-e show encryption information)
+		$cmd = sprintf("export LANG=C; klist -k /etc/krb5.keytab 2>&1");
 		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-				throw new \OMV\ExecException($cmd, $output, $exitStatus);
+			throw new \OMV\ExecException($cmd, $output, $exitStatus);
 		}
 
 		$list = array();
+		$uniqueEntries = array(); // Array to track unique entries
 
-		foreach($output as $outputv) {
+		foreach ($output as $outputv) {
 			$outputv = preg_split("/\s+/", trim($outputv));
 
-			// We need to throw away all of the lines that don't start with a number
-			if(is_numeric($outputv[0])) {
-				$entry = array(
-					"slot" => intval($outputv[0]),
-					"version" => intval($outputv[1]),
-					"principal" => $outputv[2]
-				);
+			// Ignore lines that do not start with a number
+			if (isset($outputv[0]) && is_numeric($outputv[0])) {
+				$kvno = intval($outputv[0]); // Key Version Number
+				$principal = $outputv[1]; // Principal
 
-				$regex = "/(.*)\/(.*)@(.*)$/";
-				if(preg_match($this -> regex, $principal, $matches)) {
-					$entry["type"] = $matches[1];
-					$entry["object"] = $matches[2];
-					$entry["realm"] = $matches[3];
+				// Check if the entry already exists
+				$entryKey = $kvno . ':' . $principal; // Unique key for kvno and Principal
+				if (!isset($uniqueEntries[$entryKey])) {
+					$uniqueEntries[$entryKey] = true; // Mark entry as unique
+
+					$entry = array(
+						"version" => $kvno,
+						"principal" => $principal
+					);
+
+					$list[] = $entry;
 				}
-
-				$list[] = $entry;
 			}
 		}
-		
+
 		return $list;
 	}
 
@@ -139,7 +142,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 * @param context The context of the caller.
 	 * @return The output from kadmin.
 	 */
-	function addKeyFromKeyServer($params, $context) {
+	function addKey($params, $context) {
 		// Validate the RPC caller context
 		$this -> validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
@@ -149,9 +152,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$this -> validateMethodParams($params, '{
 			"type": "object",
 			"properties": {
-				"adminPassword": {"type": "string"},
-				"adminPrincipal": {"type": "string"},
-				"targetPrincipal": {"type": "string"}
+				"principal": {"type": "string"}
 			}
 		}');
 
@@ -160,15 +161,13 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		// and comparing.
 		$currentKeytab = $this -> getKeyTab($params, $context);
 
-		$cmd = sprintf("export LANG=C; kadmin -p \"%s\" -w \"%s\" -q \"ktadd \\\"%s\\\"\" 2>&1",
-				$params['adminPrincipal'],
-				$params['adminPassword'],
-				$params['targetPrincipal']
+		$cmd = sprintf("export LANG=C; kadmin.local -q \"ktadd %s\" 2>&1",
+				$params['principal']
 		);
 		$result = $this -> exec($cmd, $output);
 
 		if($result !== 0) {
-			throw new \OMV\Exception("Failed to add desired key from KDC: %s", 
+			throw new \OMV\Exception("Failed to add principal: %s", 
 				implode("\n", $output)
 			);
 		}
@@ -177,7 +176,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 
 		// If the number of keys in the old and new keytabs is identical, we failed.
 		if(count($currentKeyTab) === count($newKeyTab)) {
-			throw new \OMV\Exception("Failed to add desired key from KDC");
+			throw new \OMV\Exception("Failed to add principal");
 		}
 
 		return $output;
@@ -202,55 +201,39 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$this -> validateMethodParams($params, '{
 			"type": "object",
 			"properties": {
-				"slots": {
-					"type": "array",
-					"minItems": 1,
-					"items": {
-						"type": "integer"
-					},
-					"uniqueItems": true
+				"version": {
+					"type": "number",
+					"required": true
+				},
+				"principal": {
+					"type": "string",
+					"required": true
 				}
 			}
 		}');
 
-		// ktutil is also rediculous. The slot number is monotonically
-		// increasing, with no gaps. As soon as we remove a key, all keys
-		// move down a slot. This means we can't actually use the slot number
-		// as given to remove keys. We need to compute the correct slot number
-		// to use based on the changes we're making. It's so much fun.
-		//
-		// However, if this operating will result in no keys, ktutil will simply
-		// write no file. So, if there is only one key in the keytab or we're removing
-		// the same number as in the keytab, simply delete the keytab file.
-		$currentKeyTab = $this -> getKeyTab($params, $context);
+		// Since kadmin's status reporting is rediculous, we're going
+		// to see if this worked by reading the keytab before and after,
+		// and comparing.
+		$currentKeytab = $this -> getKeyTab($params, $context);
 
-		if(count($params['slots']) === count($currentKeyTab)) {
-			$cmd = "export LANG=C; rm -f /etc/krb5.keytab";
-		} else {
-			arsort($params['slots']);
-
-			$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\n";
-
-			// So, lets do this N times, one for each slot to be removed.
-			// As we do this, every time we remove one, we decrement the rest
-			// of the slots by 1.
-			for($slot = 0; $slot < count($params['slots']); ++$slot) {
-				$cmd .= "delent " . $params['slots'][$slot] . "\n";
-
-				for($num = $slot+1; $num < count($params['slots']); ++$num) {
-					$params['slots'][$num]--;
-				}
-			}
-
-			$cmd .= "wkt /tmp/krb5.keytab\" | ktutil && mv /tmp/krb5.keytab /etc/krb5.keytab 2>&1";
-		}
-
+		$cmd = sprintf("export LANG=C; kadmin.local -q \"ktremove -k /etc/krb5.keytab %s %s\" 2>&1",
+				$params['principal'],
+				$params['version']
+		);
 		$result = $this -> exec($cmd, $output);
 
 		if($result !== 0) {
-			throw new \OMV\Exception("Failed to remove key(s) from key tab: %s", 
+			throw new \OMV\Exception("Failed to remove principal: %s", 
 				implode("\n", $output)
 			);
+		}
+
+		$newKeyTab = $this -> getKeyTab($params, $context);
+
+		// If the number of keys in the old and new keytabs is identical, we failed.
+		if(count($currentKeyTab) === count($newKeyTab)) {
+			throw new \OMV\Exception("Failed to remove principal");
 		}
 
 		return $output;
@@ -278,8 +261,6 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$this -> validateMethodParams($params, '{
 			"type": "object",
 			"properties": {
-				"adminPassword": {"type": "string"},
-				"adminPrincipal": {"type": "string"},
 				"newPrincipal": {"type": "string"},
 				"newPrincipalKey": {"type": "string", "optional": true},
 				"randomKey": {"type": "boolean"}
@@ -288,10 +269,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 
 		// First, create the key on the key server. Order of the query matters,
 		// so this is a bit weird.
-		$cmd = sprintf("export LANG=C; kadmin -p \"%s\" -w \"%s\" -q \"addprinc",
-				$params['adminPrincipal'],
-				$params['adminPassword']
-		);
+		$cmd = sprintf("export LANG=C; kadmin.local -q \"addprinc");
 
 		if($params['randomKey']) {
 			$cmd .= " -randkey";
@@ -309,14 +287,11 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 			);
 		}
 
-		// Now, use addKeyFromKeyServer to add the key to the keytab.
-		$addParams = array(
-			"adminPassword" => $params['adminPassword'],
-			"adminPrincipal" => $params['adminPrincipal'],
-			"targetPrincipal" => $params['newPrincipal']
+		// Now, use addKey to add the key to the keytab.
+		$params = array(
+			"principal" => $params['newPrincipal']
 		);
-
-		$output .= $this -> addKeyFromKeyServer($addParams, $context);
+		$output .= $this -> addKey($params, $context);
 
 		return $output;
 	}
