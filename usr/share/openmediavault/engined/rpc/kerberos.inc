@@ -146,14 +146,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"adminPassword": {"type": "string"},
-				"adminPrincipal": {"type": "string"},
-				"targetPrincipal": {"type": "string"}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.add');
 
 		// Since kadmin's status reporting is rediculous, we're going
 		// to see if this worked by reading the keytab before and after,
@@ -199,19 +192,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"slots": {
-					"type": "array",
-					"minItems": 1,
-					"items": {
-						"type": "integer"
-					},
-					"uniqueItems": true
-				}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.remove');
 
 		// ktutil is also rediculous. The slot number is monotonically
 		// increasing, with no gaps. As soon as we remove a key, all keys
@@ -275,16 +256,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"adminPassword": {"type": "string"},
-				"adminPrincipal": {"type": "string"},
-				"newPrincipal": {"type": "string"},
-				"newPrincipalKey": {"type": "string", "optional": true},
-				"randomKey": {"type": "boolean"}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.create');
 
 		// First, create the key on the key server. Order of the query matters,
 		// so this is a bit weird.
@@ -293,7 +265,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 				$params['adminPassword']
 		);
 
-		if($params['randomKey']) {
+		if($params['randomKey'] === TRUE) {
 			$cmd .= " -randkey";
 		} else {
 			$cmd .= " -pw \\\"" . $params['newPrincipalKey'] . "\\\"";

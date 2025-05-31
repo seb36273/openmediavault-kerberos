@@ -40,4 +40,67 @@
 			}
 		}
 	}
+},{
+	"type": "rpc",
+	"id": "rpc.kerberos.principal.create",
+	"params": {
+		"type": "object",
+		"properties": {
+			"adminPrincipal": {
+				"type": "string",
+				"required": true
+			},
+			"adminPassword": {
+				"type": "string",
+				"required": true
+			},
+			"newPrincipal": {
+				"type": "string",
+				"required": true
+			},
+			"newPrincipalKey": {
+				"type": "string",
+				"optional": true
+			},
+			"randomKey": {
+				"type": "boolean"
+			}
+		}
+	}
+},{
+	"type": "rpc",
+	"id": "rpc.kerberos.principal.add",
+	"params": {
+		"type": "object",
+		"properties": {
+			"adminPrincipal": {
+				"type": "string",
+				"required": true
+			},
+			"adminPassword": {
+				"type": "string",
+				"required": true
+			},
+			"targetPrincipal": {
+				"type": "string",
+				"required": true
+			}
+		}
+	}
+},{
+	"type": "rpc",
+	"id": "rpc.kerberos.principal.remove",
+	"params": {
+		"type": "object",
+		"properties": {
+			"slots": {
+				"type": "array",
+				"minItems": 1,
+				"items": {
+					"type": "integer"
+				},
+				"uniqueItems": true
+			}
+		}
+	}
 }]
