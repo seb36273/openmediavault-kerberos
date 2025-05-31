@@ -149,12 +149,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"principal": {"type": "string"}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.add');
 
 		// Since kadmin's status reporting is rediculous, we're going
 		// to see if this worked by reading the keytab before and after,
@@ -198,19 +193,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"version": {
-					"type": "number",
-					"required": true
-				},
-				"principal": {
-					"type": "string",
-					"required": true
-				}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.remove');
 
 		// Since kadmin's status reporting is rediculous, we're going
 		// to see if this worked by reading the keytab before and after,
@@ -258,20 +241,13 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, '{
-			"type": "object",
-			"properties": {
-				"newPrincipal": {"type": "string"},
-				"newPrincipalKey": {"type": "string", "optional": true},
-				"randomKey": {"type": "boolean"}
-			}
-		}');
+		$this -> validateMethodParams($params, 'rpc.kerberos.principal.create');
 
 		// First, create the key on the key server. Order of the query matters,
 		// so this is a bit weird.
 		$cmd = sprintf("export LANG=C; kadmin.local -q \"addprinc");
 
-		if($params['randomKey']) {
+		if($params['randomKey'] === TRUE) {
 			$cmd .= " -randkey";
 		} else {
 			$cmd .= " -pw \\\"" . $params['newPrincipalKey'] . "\\\"";
