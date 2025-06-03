@@ -1,8 +1,9 @@
-openmediavault-kerberos (0.2.3) testing; urgency=low
+openmediavault-kerberos (0.3.8) testing; urgency=low
 
   * Compatiblity with OpenMediaVault 6.9.16-1 (Shaitan)
+  * Use `formDialog` for user input instead of additional form page
 
- -- Seb36273 <devel@nareo.de>  Sat, 19 Apr 2025 11:08:51 +0200
+ -- Seb36273 <devel@nareo.de>  Tue, 03 Jun 2025 22:25:15 +0200
 
 openmediavault-kerberos (0.1.6) testing; urgency=low
 

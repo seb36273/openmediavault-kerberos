@@ -10,8 +10,6 @@ data:
         service: Kerberos
         get:
           method: getKeyTab
-    rowId: slot
-    rowEnumFmt: "{{ slot }}"
     columns:
       - name: _("Slot")
         prop: slot
@@ -23,43 +21,76 @@ data:
         prop: principal
         sortable: true
         flexGrow: 1
+    sorters:
+    - dir: asc
+      prop: principal
     actions:
       - type: menu
         icon: add
-        tooltip: _("Add")
+        tooltip: _("Add Principal")
         actions:
-          - text: _("Add Key")
+          - text: _("New")
             execute:
               type: formDialog
               formDialog:
-                title: _("Add key from key server ...")
-                request:
-                  service: Kerberos
-                  post:
-                    method: addKey
+                title: _("Create new Principal")
                 fields:
                   - type: textInput
                     name: adminPrincipal
-                    label: _("Administration Principal")
+                    label: _("Admin Principal")
                     validators:
                       required: true
                   - type: passwordInput
                     name: adminPassword
-                    label: _("Administration Password")
+                    label: _("Admin Password")
                     validators:
                       required: true
                   - type: textInput
-                    name: targetPrincipal
-                    label: _("Target Principal")
+                    name: newPrincipal
+                    label: _("New Principal")
+                    validators:
+                      required: true
+                  - type: passwordInput
+                    name: newPrincipalKey
+                    label: _("New Principal Key")
+                    value: ""
+                    autocomplete: new-password
+                    modifiers:
+                      - type: enabled
+                        constraint:
+                          operator: eq
+                          arg0:
+                            prop: randomKey
+                          arg1: false
+                  - type: checkbox
+                    name: randomKey
+                    label: _("Generate random Principal Key")
+                    value: true
+                buttons:
+                  submit:
+                    execute:
+                      type: request
+                      request:
+                        service: Kerberos
+                        method: createKey
+          - text: _("Add")
+            execute:
+              type: formDialog
+              formDialog:
+                title: _("Add Principal")
+                fields:
+                  - type: textInput
+                    name: principal
+                    label: _("Principal")
                     validators:
                       required: true
                 buttons:
-                  - template: submit
-                  - template: cancel
-          - text: _("Create Principal")
-            execute:
-              type: url
-              url: "/usermgmt/kerberos/principal/create"
+                  submit:
+                    execute:
+                      type: request
+                      request:
+                        service: Kerberos
+                        method: addKey
       - template: delete
         execute:
           type: request
