@@ -30,12 +30,12 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 * Initialize the RPC service.
 	 */
 	public function initialize() {
-		$this -> registerMethod("getSettings");
-		$this -> registerMethod("setSettings");
-		$this -> registerMethod("getKeyTab");
-		$this -> registerMethod("addKeyFromKeyServer");
-		$this -> registerMethod("removeKey");
-		$this -> registerMethod("createKey");
+		$this->registerMethod("getSettings");
+		$this->registerMethod("setSettings");
+		$this->registerMethod("getKeyTab");
+		$this->registerMethod("addKey");
+		$this->registerMethod("removeKey");
+		$this->registerMethod("createKey");
 	}
 
 	/**
@@ -47,7 +47,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 */
 	function getSettings($params, $context) {
 		// Validate the RPC caller context.
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
@@ -92,13 +92,13 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 */
 	function getKeyTab($params, $context) {
 		// Validate the RPC caller context
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
 		$cmd = sprintf("export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil 2>&1");
 		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-				throw new \OMV\ExecException($cmd, $output, $exitStatus);
+			throw new \OMV\Exception("Failed to get principals from keytab");
 		}
 
 		$list = array();
@@ -115,7 +115,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 				);
 
 				$regex = "/(.*)\/(.*)@(.*)$/";
-				if(preg_match($this -> regex, $principal, $matches)) {
+				if(preg_match($this->regex, $principal, $matches)) {
 					$entry["type"] = $matches[1];
 					$entry["object"] = $matches[2];
 					$entry["realm"] = $matches[3];
@@ -139,38 +139,37 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 * @param context The context of the caller.
 	 * @return The output from kadmin.
 	 */
-	function addKeyFromKeyServer($params, $context) {
+	function addKey($params, $context) {
 		// Validate the RPC caller context
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, 'rpc.kerberos.principal.add');
+		$this->validateMethodParams($params, 'rpc.kerberos.principal.add');
 
 		// Since kadmin's status reporting is rediculous, we're going
 		// to see if this worked by reading the keytab before and after,
 		// and comparing.
-		$currentKeytab = $this -> getKeyTab($params, $context);
+		$currentKeytab = $this->getKeyTab($params, $context);
 
 		$cmd = sprintf("export LANG=C; kadmin -p \"%s\" -w \"%s\" -q \"ktadd \\\"%s\\\"\" 2>&1",
 				$params['adminPrincipal'],
 				$params['adminPassword'],
 				$params['targetPrincipal']
 		);
-		$result = $this -> exec($cmd, $output);
 
-		if($result !== 0) {
-			throw new \OMV\Exception("Failed to add desired key from KDC: %s", 
+		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
+			throw new \OMV\Exception("Failed to add principal: %s", 
 				implode("\n", $output)
 			);
 		}
 
-		$newKeyTab = $this -> getKeyTab($params, $context);
+		$newKeyTab = $this->getKeyTab($params, $context);
 
 		// If the number of keys in the old and new keytabs is identical, we failed.
 		if(count($currentKeyTab) === count($newKeyTab)) {
-			throw new \OMV\Exception("Failed to add desired key from KDC");
+			throw new \OMV\Exception("Failed to add principal");
 		}
 
 		return $output;
@@ -187,12 +186,12 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 */
 	function removeKey($params, $context) {
 		// Validate the RPC caller context
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, 'rpc.kerberos.principal.remove');
+		$this->validateMethodParams($params, 'rpc.kerberos.principal.remove');
 
 		// ktutil is also rediculous. The slot number is monotonically
 		// increasing, with no gaps. As soon as we remove a key, all keys
@@ -203,7 +202,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		// However, if this operating will result in no keys, ktutil will simply
 		// write no file. So, if there is only one key in the keytab or we're removing
 		// the same number as in the keytab, simply delete the keytab file.
-		$currentKeyTab = $this -> getKeyTab($params, $context);
+		$currentKeyTab = $this->getKeyTab($params, $context);
 
 		if(count($params['slots']) === count($currentKeyTab)) {
 			$cmd = "export LANG=C; rm -f /etc/krb5.keytab";
@@ -226,9 +225,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 			$cmd .= "wkt /tmp/krb5.keytab\" | ktutil && mv /tmp/krb5.keytab /etc/krb5.keytab 2>&1";
 		}
 
-		$result = $this -> exec($cmd, $output);
-
-		if($result !== 0) {
+		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
 			throw new \OMV\Exception("Failed to remove key(s) from key tab: %s", 
 				implode("\n", $output)
 			);
@@ -251,12 +248,12 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 */
 	function createKey($params, $context) {
 		// Validate the RPC caller context
-		$this -> validateMethodContext($context, array(
+		$this->validateMethodContext($context, array(
 			"role" => OMV_ROLE_ADMINISTRATOR
 		));
 
 		// Validate the parameters of the RPC servicemethod.
-		$this -> validateMethodParams($params, 'rpc.kerberos.principal.create');
+		$this->validateMethodParams($params, 'rpc.kerberos.principal.create');
 
 		// First, create the key on the key server. Order of the query matters,
 		// so this is a bit weird.
@@ -273,22 +270,20 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 
 		$cmd .= " \\\"" . $params['newPrincipal'] . "\\\"\" 2>&1";
 
-		$result = $this -> exec($cmd, $output);
-
-		if($result !== 0) {
+		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
 			throw new \OMV\Exception("Failed to create new key on KDC: %s", 
 				implode("\n", $output)
 			);
 		}
 
-		// Now, use addKeyFromKeyServer to add the key to the keytab.
+		// Now, use addKey to add the key to the keytab.
 		$addParams = array(
 			"adminPassword" => $params['adminPassword'],
 			"adminPrincipal" => $params['adminPrincipal'],
 			"targetPrincipal" => $params['newPrincipal']
 		);
 
-		$output .= $this -> addKeyFromKeyServer($addParams, $context);
+		$output .= $this->addKey($addParams, $context);
 
 		return $output;
 	}

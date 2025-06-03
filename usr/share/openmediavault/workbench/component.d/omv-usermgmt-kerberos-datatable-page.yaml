@@ -36,7 +36,7 @@ data:
                 request:
                   service: Kerberos
                   post:
-                    method: addKeyFromKeyServer
+                    method: addKey
                 fields:
                   - type: textInput
                     name: adminPrincipal
