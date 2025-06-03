@@ -27,7 +27,35 @@ data:
         icon: add
         tooltip: _("Add Principal")
         actions:
-          - text: _("New")
+          - text: _("Add")
+            execute:
+              type: formDialog
+              formDialog:
+                title: _("Add Principal")
+                fields:
+                  - type: textInput
+                    name: adminPrincipal
+                    label: _("Admin Principal")
+                    validators:
+                      required: true
+                  - type: passwordInput
+                    name: adminPassword
+                    label: _("Admin Password")
+                    validators:
+                      required: true
+                  - type: textInput
+                    name: principal
+                    label: _("Principal")
+                    validators:
+                      required: true
+                buttons:
+                  submit:
+                    execute:
+                      type: request
+                      request:
+                        service: Kerberos
+                        method: addKey
+          - text: _("Create")
             execute:
               type: formDialog
               formDialog:
@@ -71,34 +99,6 @@ data:
                       request:
                         service: Kerberos
                         method: createKey
-          - text: _("Add")
-            execute:
-              type: formDialog
-              formDialog:
-                title: _("Add Principal")
-                fields:
-                  - type: textInput
-                    name: adminPrincipal
-                    label: _("Admin Principal")
-                    validators:
-                      required: true
-                  - type: passwordInput
-                    name: adminPassword
-                    label: _("Admin Password")
-                    validators:
-                      required: true
-                  - type: textInput
-                    name: principal
-                    label: _("Principal")
-                    validators:
-                      required: true
-                buttons:
-                  submit:
-                    execute:
-                      type: request
-                      request:
-                        service: Kerberos
-                        method: addKey
       - template: delete
         tooltip: _("Delete Principal")
         execute:
