@@ -81,7 +81,7 @@
 				"type": "string",
 				"required": true
 			},
-			"targetPrincipal": {
+			"principal": {
 				"type": "string",
 				"required": true
 			}
@@ -93,13 +93,13 @@
 	"params": {
 		"type": "object",
 		"properties": {
-			"slots": {
-				"type": "array",
-				"minItems": 1,
-				"items": {
-					"type": "integer"
-				},
-				"uniqueItems": true
+			"version": {
+				"type": "number",
+				"required": true
+			},
+			"principal": {
+				"type": "string",
+				"required": true
 			}
 		}
 	}

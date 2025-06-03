@@ -150,7 +150,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		// Since kadmin's status reporting is rediculous, we're going
 		// to see if this worked by reading the keytab before and after,
 		// and comparing.
-		$currentKeytab = $this->getKeyTab($params, $context);
+		$currentKeyTab = $this->getKeyTab($params, $context);
 
 		$cmd = sprintf("export LANG=C; kadmin -p \"%s\" -w \"%s\" -q \"ktadd \\\"%s\\\"\" 2>&1",
 				$params['adminPrincipal'],
