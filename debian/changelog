@@ -1,9 +1,11 @@
-openmediavault-kerberos (0.3.8) testing; urgency=low
+openmediavault-kerberos (0.3.9) testing; urgency=low
 
   * Compatiblity with OpenMediaVault 6.9.16-1 (Shaitan)
   * Use `formDialog` for user input instead of additional form page
+  * Fix: Remove keys from keytab with new WebUI.
+  * Show unique entries in keytab.
 
- -- Seb36273 <devel@nareo.de>  Tue, 03 Jun 2025 22:25:15 +0200
+ -- Seb36273 <devel@nareo.de>  Tue, 03 Jun 2025 22:50:58 +0200
 
 openmediavault-kerberos (0.1.6) testing; urgency=low
 

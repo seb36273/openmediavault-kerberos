@@ -11,16 +11,14 @@ data:
         get:
           method: getKeyTab
     columns:
-      - name: _("Slot")
-        prop: slot
-        sortable: true
       - name: _("Version")
         prop: version
         sortable: true
+        flexGrow: 1
       - name: _("Principal")
         prop: principal
         sortable: true
-        flexGrow: 1
+        flexGrow: 8
     sorters:
     - dir: asc
       prop: principal
@@ -80,6 +78,16 @@ data:
                 title: _("Add Principal")
                 fields:
                   - type: textInput
+                    name: adminPrincipal
+                    label: _("Admin Principal")
+                    validators:
+                      required: true
+                  - type: passwordInput
+                    name: adminPassword
+                    label: _("Admin Password")
+                    validators:
+                      required: true
+                  - type: textInput
                     name: principal
                     label: _("Principal")
                     validators:
@@ -92,10 +100,12 @@ data:
                         service: Kerberos
                         method: addKey
       - template: delete
+        tooltip: _("Delete Principal")
         execute:
           type: request
           request:
             service: Kerberos
             method: removeKey
             params:
-              slots: "{{ slot }}"
+              principal: "{{ principal }}"
+              version: "{{ version }}"

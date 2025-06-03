@@ -102,29 +102,28 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		}
 
 		$list = array();
+		$uniqueEntries = array(); // Array to track unique entries
 
-		foreach($output as $outputv) {
-			$outputv = preg_split("/\s+/", trim($outputv));
+		foreach ($output as $line) {
+			if (preg_match('/^\s*(\d+)\s+(\d+)\s+(.+)$/', $line, $matches)) {
+				$currentVersion = $matches[2]; // Key Version Number KVNO
+				$currentPrincipal = trim($matches[3]); // Principal
 
-			// We need to throw away all of the lines that don't start with a number
-			if(is_numeric($outputv[0])) {
-				$entry = array(
-					"slot" => intval($outputv[0]),
-					"version" => intval($outputv[1]),
-					"principal" => $outputv[2]
-				);
+				// Check if the entry already exists
+				$entryKey = $currentVersion . ':' . $currentPrincipal; // Unique key for KVNO and Principal
+				if (!isset($uniqueEntries[$entryKey])) {
+					$uniqueEntries[$entryKey] = true; // Mark entry as unique
 
-				$regex = "/(.*)\/(.*)@(.*)$/";
-				if(preg_match($this->regex, $principal, $matches)) {
-					$entry["type"] = $matches[1];
-					$entry["object"] = $matches[2];
-					$entry["realm"] = $matches[3];
+					$entry = array(
+						"version" => $currentVersion,
+						"principal" => $currentPrincipal
+					);
+
+					$list[] = $entry;
 				}
-
-				$list[] = $entry;
 			}
 		}
-		
+
 		return $list;
 	}
 
@@ -156,7 +155,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$cmd = sprintf("export LANG=C; kadmin -p \"%s\" -w \"%s\" -q \"ktadd \\\"%s\\\"\" 2>&1",
 				$params['adminPrincipal'],
 				$params['adminPassword'],
-				$params['targetPrincipal']
+				$params['principal']
 		);
 
 		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
@@ -193,42 +192,80 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		// Validate the parameters of the RPC servicemethod.
 		$this->validateMethodParams($params, 'rpc.kerberos.principal.remove');
 
-		// ktutil is also rediculous. The slot number is monotonically
-		// increasing, with no gaps. As soon as we remove a key, all keys
-		// move down a slot. This means we can't actually use the slot number
-		// as given to remove keys. We need to compute the correct slot number
-		// to use based on the changes we're making. It's so much fun.
-		//
-		// However, if this operating will result in no keys, ktutil will simply
-		// write no file. So, if there is only one key in the keytab or we're removing
-		// the same number as in the keytab, simply delete the keytab file.
+		// Since kadmin's status reporting is rediculous, we're going
+		// to see if this worked by reading the keytab before and after,
+		// and comparing.
 		$currentKeyTab = $this->getKeyTab($params, $context);
 
-		if(count($params['slots']) === count($currentKeyTab)) {
-			$cmd = "export LANG=C; rm -f /etc/krb5.keytab";
-		} else {
-			arsort($params['slots']);
-
-			$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\n";
-
-			// So, lets do this N times, one for each slot to be removed.
-			// As we do this, every time we remove one, we decrement the rest
-			// of the slots by 1.
-			for($slot = 0; $slot < count($params['slots']); ++$slot) {
-				$cmd .= "delent " . $params['slots'][$slot] . "\n";
-
-				for($num = $slot+1; $num < count($params['slots']); ++$num) {
-					$params['slots'][$num]--;
-				}
-			}
-
-			$cmd .= "wkt /tmp/krb5.keytab\" | ktutil && mv /tmp/krb5.keytab /etc/krb5.keytab 2>&1";
-		}
-
+		// Prepare the command to list current keytab entries
+		$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil";
 		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-			throw new \OMV\Exception("Failed to remove key(s) from key tab: %s", 
+			throw new \OMV\Exception("Failed to list keytab entries: %s", 
 				implode("\n", $output)
 			);
+		}
+
+		// Find the slots to remove for the given kvno and principal
+		$slotsToRemove = [];
+
+		foreach ($output as $line) {
+			if (preg_match('/^\s*(\d+)\s+(\d+)\s+(.+)$/', $line, $matches)) {
+				$currentSlot = $matches[1];
+				$currentVersion = $matches[2];
+				$currentPrincipal = trim($matches[3]);
+
+				// Check if the current kvno and principal match the parameters
+				if ($currentVersion === $params['version'] && $currentPrincipal === $params['principal']) {
+					$slotsToRemove[] = $currentSlot;
+				}
+			}
+		}
+
+		if (!empty($slotsToRemove)) {
+			// ktutil is also rediculous. The slot number is monotonically
+			// increasing, with no gaps. As soon as we remove a key, all keys
+			// move down a slot. This means we can't actually use the slot number
+			// as given to remove keys. We need to compute the correct slot number
+			// to use based on the changes we're making. It's so much fun.
+			//
+			// However, if this operating will result in no keys, ktutil will simply
+			// write no file. So, if there is only one key in the keytab or we're removing
+			// the same number as in the keytab, simply delete the keytab file.
+
+			if (count($currentKeyTab) === 1) {
+				$cmd = "export LANG=C; rm -f /etc/krb5.keytab";
+			} else {
+				arsort($slotsToRemove);
+
+				// Prepare the command to remove the keys
+				$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\n";
+
+				// So, lets do this N times, one for each slot to be removed.
+				// As we do this, every time we remove one, we decrement the rest
+				// of the slots by 1.
+				for ($slot = 0; $slot < count($slotsToRemove); ++$slot) {
+					$cmd .= "delent " . $slotsToRemove[$slot] . "\n";
+
+					for($num = $slot+1; $num < count($slotsToRemove); ++$num) {
+						$slotsToRemove[$num]--;
+					}
+				}
+
+				$cmd .= "wkt /tmp/krb5.keytab\" | ktutil && mv /tmp/krb5.keytab /etc/krb5.keytab 2>&1";
+			}
+
+			if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
+				throw new \OMV\Exception("Failed to remove principal: %s", 
+					implode("\n", $output)
+				);
+			}
+		}
+
+		$newKeyTab = $this->getKeyTab($params, $context);
+
+		// If the number of keys in the old and new keytabs is identical, we failed.
+		if(count($newKeyTab) === count($currentKeyTab)) {
+			throw new \OMV\Exception("Failed to remove principal");
 		}
 
 		return $output;
@@ -280,7 +317,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		$addParams = array(
 			"adminPassword" => $params['adminPassword'],
 			"adminPrincipal" => $params['adminPrincipal'],
-			"targetPrincipal" => $params['newPrincipal']
+			"principal" => $params['newPrincipal']
 		);
 
 		$output .= $this->addKey($addParams, $context);
