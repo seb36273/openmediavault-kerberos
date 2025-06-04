@@ -157,18 +157,17 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 				$params['adminPassword'],
 				$params['principal']
 		);
-
-		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-			throw new \OMV\Exception("Failed to add principal: %s", 
-				implode("\n", $output)
-			);
-		}
+		$this->exec($cmd, $output);
 
 		$newKeyTab = $this->getKeyTab($params, $context);
 
 		// If the number of keys in the old and new keytabs is identical, we failed.
 		if(count($currentKeyTab) === count($newKeyTab)) {
-			throw new \OMV\Exception("Failed to add principal");
+			$error_message = "Failed to add principal";
+			if ($output) {
+				$error_message .= sprintf(": %s", implode("\n", $output));
+			}
+			throw new \OMV\Exception($error_message);
 		}
 
 		return $output;
@@ -181,7 +180,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 	 *
 	 * @param params An array containing all of the parameters to this function.
 	 * @param context The context of the caller.
-	 * @return The output from ktutil.
+	 * @return The output from kadmin.
 	 */
 	function removeKey($params, $context) {
 		// Validate the RPC caller context
@@ -199,11 +198,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 
 		// Prepare the command to list current keytab entries
 		$cmd = "export LANG=C; echo \"rkt /etc/krb5.keytab\nlist\" | ktutil";
-		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-			throw new \OMV\Exception("Failed to list keytab entries: %s", 
-				implode("\n", $output)
-			);
-		}
+		$this->exec($cmd, $output);
 
 		// Find the slots to remove for the given kvno and principal
 		$slotsToRemove = [];
@@ -254,18 +249,18 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 				$cmd .= "wkt /tmp/krb5.keytab\" | ktutil && mv /tmp/krb5.keytab /etc/krb5.keytab 2>&1";
 			}
 
-			if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-				throw new \OMV\Exception("Failed to remove principal: %s", 
-					implode("\n", $output)
-				);
-			}
+			$this->exec($cmd, $output);
 		}
 
 		$newKeyTab = $this->getKeyTab($params, $context);
 
 		// If the number of keys in the old and new keytabs is identical, we failed.
 		if(count($newKeyTab) === count($currentKeyTab)) {
-			throw new \OMV\Exception("Failed to remove principal");
+			$error_message = "Failed to remove principal";
+			if ($output) {
+				$error_message .= sprintf(": %s", implode("\n", $output));
+			}
+			throw new \OMV\Exception($error_message);
 		}
 
 		return $output;
@@ -306,12 +301,7 @@ class OMVRpcServiceKerberos extends \OMV\Rpc\ServiceAbstract {
 		}
 
 		$cmd .= " \\\"" . $params['newPrincipal'] . "\\\"\" 2>&1";
-
-		if (0 !== ($exitStatus = $this->exec($cmd, $output))) {
-			throw new \OMV\Exception("Failed to create new key on KDC: %s", 
-				implode("\n", $output)
-			);
-		}
+		$this->exec($cmd, $output);
 
 		// Now, use addKey to add the key to the keytab.
 		$addParams = array(
