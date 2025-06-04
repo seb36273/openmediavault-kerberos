@@ -1,0 +1,8 @@
+version: "1.0"
+type: route
+data:
+  url: "/usermgmt/kerberos/keytab"
+  title: _("Key Tab")
+  editing: true
+  notificationTitle: _('Updated Kerberos Key Tab.')
+  component: omv-usermgmt-kerberos-datatable-page

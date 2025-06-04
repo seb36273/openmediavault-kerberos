@@ -1,0 +1,6 @@
+version: "1.0"
+type: route
+data:
+  url: "/usermgmt/kerberos"
+  title: _("Kerberos")
+  component: omv-usermgmt-kerberos-navigation-page

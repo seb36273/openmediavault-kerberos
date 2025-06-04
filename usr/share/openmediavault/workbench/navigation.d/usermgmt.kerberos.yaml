@@ -1,0 +1,7 @@
+version: "1.0"
+type: navigation-item
+data:
+  path: "usermgmt.kerberos"
+  text: _("Kerberos")
+  icon: "mdi:account-key-outline"
+  url: "/usermgmt/kerberos"
